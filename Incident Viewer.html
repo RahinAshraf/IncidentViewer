@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<!--Author Name: Rahin Ashraf 
+    Author Student ID: 20034059-->
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>INScw3</title>
+    <script src="https://api.mqcdn.com/sdk/mapquest-js/v1.3.2/mapquest.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link
+      type="text/css"
+      rel="stylesheet"
+      href="https://api.mqcdn.com/sdk/mapquest-js/v1.3.2/mapquest.css"
+    />
+  </head>
+
+  <body>
+    <div>
+      <!-- Greeting text -->
+      <h3>
+        Welcome to my Coursework 3 for the module 5CCS2INS - Internet Systems
+      </h3>
+      Here I provide the availability to view the traffic incidents in a
+      selected group of US states.<br /><br />
+
+      <!-- Explain how to use text -->
+      <b>How to use my webpage:</b>
+      <ol>
+        <li>
+          Click on the drop-down box below, which can be found under the program
+          descriptions
+        </li>
+        <li>
+          From the available choices, select a US state you wish to view the
+          traffic incidents of.
+        </li>
+        <li>Click the <i>See incidents</i> button.</li>
+      </ol>
+
+      <b>You will now be presented with the following:</b>
+      <ul>
+        <li>
+          A map of the state you selected, which displays the incidents of the
+          state using blue markers.
+        </li>
+        <li>
+          Below the map is a numbered list of short descriptions, for every
+          incident that has occured in the state.
+        </li>
+      </ul>
+      <p></p> <!-- For spacing between the text and other components, purely for neatness -->
+    </div>
+
+    <!-- Drop-down and button for user to select a state -->
+    <div>
+      <select name="city" id="selectCity" onchange="selectCity()"></select>
+      <button onclick="getIncidents()">See incidents</button>
+    </div>
+
+    <div id="map" style="width: 100%; height: 530px"></div>
+
+    <table>
+      <tbody id="tbody"></tbody>
+    </table>
+
+    <script>
+      //my key to access the traffic data
+      const key = "dqbB3NB4WrAx6oVOzzJzUEdfHvyYWT7l";
+
+      //Array of cities the user can see incidents of
+      const cities = [
+        {
+          name: "New York",
+          lat: 40.71,
+          lng: -74.00,
+        },
+        {
+          name: "Los Angeles",
+          lat: 34.05,
+          lng: -118.24,
+        },
+        {
+          name: "Chicago",
+          lat: 41.85,
+          lng: -87.65,
+        },
+        {
+          name: "Seattle",
+          lat: 47.60,
+          lng: -122.33,
+        },
+        {
+          name: "Washington DC",
+          lat: 38.89,
+          lng: -77.03,
+        },
+      ];
+
+      let selectedCity = "New York";
+      let map;
+      L.mapquest.key = key;
+
+      //Retrieve the selected city from the user
+      const selectCity = () => {
+        // 'map' refers to a <div> element with the ID map
+        const selectBox = document.getElementById("selectCity");
+        selectedCity = selectBox.options[selectBox.selectedIndex].value;
+        const { lat, lng } = selectedCityFromCitiesList();
+      };
+
+      //get the city that was selected from the user
+      const selectedCityFromCitiesList = () =>
+        cities.filter((city) => city.name == selectedCity)[0];
+
+      //Get trafic data, for the city the user selected
+      const getIncidents = () => {
+        const { lat, lng } = selectedCityFromCitiesList();
+        //calculate new Latitudes and Longitudes to centre the results around another city
+        let newLat1 = lat - 0.22;
+        let newLng1 = lng - 0.22;
+        let newLat2 = lat + 0.22;
+        let newLng2 = lng + 0.22;
+        /*Query mapQuest through AJAX call, by providing the following: my key to the data and the new lats and lngs, 
+        to centre the map around the result of another city */
+        $.get(
+          `http://www.mapquestapi.com/traffic/v2/incidents?key=${key}&boundingBox=${newLat1},${newLng1},${newLat2},${newLng2}&filters=construction,incidents`,
+          (data, status) => {
+            showMap(data, lat, lng); //show the map
+            createTableData(data, lat, lng); // create table and incidents markers
+          }
+        );
+      };
+
+      //Show the map, based on the users choice of city
+      function showMap(data, lat, lng) {
+        //Initialize the map, but if it is already initalized don't initalize it up again
+        if (!map) {
+          map = L.mapquest.map("map", {
+            center: [lat, lng],
+            // L.mapquest.tileLayer('map') is the MapQuest map tile layer
+            layers: L.mapquest.tileLayer("map"),
+            zoom: 12,
+          });
+        }
+        map.setView([lat, lng], 10); //display the map, using the given latitude and longitude
+      }
+
+      //Add the detailing of the incident: markers and short descriptions
+      function createTableData(data, lat, lng) {
+        var tbody = document.getElementById("tbody");
+        var i = 1,
+        tbodyhtml = "";
+        data.incidents.map((incident) => {
+          L.circle([incident.lat, incident.lng], { radius: 2 }).addTo(map); //place a marker on the map for every incident
+          //table of descriptions for every incident
+          var tr = "<tr>";
+          /* Must not forget the $ sign */
+          tr +=
+          "<td>" + i++ + "</td>" + "<td>" + incident.shortDesc + "</td></tr>";
+          /* We add the table row to the table body */
+          tbodyhtml += tr;
+          // tbody.innerHTML += tr;
+      });
+      tbody.innerHTML = tbodyhtml;
+    }
+
+    //list the available cities
+    document.getElementById("selectCity").innerHTML = cities.reduce(
+      (options, city) => {
+        return options + `<option value="${city.name}">${city.name}</option>`;
+      },
+      ""
+    );
+    </script>
+  </body>
+</html>
